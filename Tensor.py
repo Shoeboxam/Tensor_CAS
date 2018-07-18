@@ -49,7 +49,7 @@ class Node(object):
             if variable in child.variables:
                 branches.append(self.backpropagate(variable, indices, child) @ child.gradient(variable, indices))
 
-        return Sum(branches)
+        return Sum(*branches)
 
     @property
     def variables(self):
@@ -57,7 +57,7 @@ class Node(object):
         return [var for child in self.children for var in child.variables]
 
     def __matmul__(*args):
-        return Product(args)
+        return Product(*args)
 
     def propagate(self, features):
         raise NotImplementedError(self.__class__.__name__ + ' has not implemented "propagate"')
@@ -81,7 +81,7 @@ class Sigmoid(Node):
 class Group(Node):
     symbol = ''
 
-    def __init__(self, children):
+    def __init__(self, *children):
         """commutative ops should not be nested (which shows preference for order)"""
         flat = []
         [flat.extend(child.children) if type(child) is type(self) else flat.append(child) for child in children]
@@ -106,7 +106,7 @@ class Product(Group):
         return [indice for indice, state in present.items() if state]
 
     def backpropagate(self, variable, indices, child):
-        return Product([sibling for sibling in self.children if child is not sibling])
+        return Product(*[sibling for sibling in self.children if child is not sibling])
 
 
 class Sum(Group):
@@ -118,7 +118,7 @@ class Multiply(Group):
 
 
 class Tensor(Node):
-    def __init__(self, indices):
+    def __init__(self, *indices):
         super().__init__([])
         self._indices = list(indices)
         # self._value = value(*Index.shape(indices)) if callable(value) else value
@@ -135,7 +135,7 @@ class Tensor(Node):
 
     def backpropagate(self, variable, indices, child):
         if variable is self:
-            return Product([Identity((i, j)) for i, j in zip(self.indices, indices)])
+            return Product(*[Identity(i, j) for i, j in zip(self.indices, indices)])
         return 0  # TODO shape conformation
 
     @property
@@ -144,14 +144,8 @@ class Tensor(Node):
         return [self]
 
 
-class Constant(Tensor):
-    pass
-
-
 # kronecker delta, identity for relabeling indices
 class Identity(Tensor):
-    def __init__(self, indices):
-        super().__init__(indices)
 
     @property
     def indices(self):
@@ -187,6 +181,7 @@ def simplify(graph):
 
     def relabel_index(sibling, top, bottom):
         if issubclass(type(sibling), Tensor):
+            # TODO should act on a copy, to prevent side effects
             sibling._indices[sibling._indices.index(top)] = bottom
             return True
         else:

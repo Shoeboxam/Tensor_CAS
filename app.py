@@ -7,9 +7,9 @@ print('Initial Indices: ' + str(ind))
 print()
 
 # initialize tensors
-A = Constant(ind[:2])
-B = Constant(ind[1:3])
-C = Constant(ind[2:])
+A = Tensor(*ind[:2])
+B = Tensor(*ind[1:3])
+C = Tensor(*ind[2:])
 
 print('Tensor A: ' + str(A))
 print('Tensor B: ' + str(B))
