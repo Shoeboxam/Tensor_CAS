@@ -13,7 +13,7 @@ class Index(object):
     def __repr__(self):
         return str(len(self)) + str.translate(self.id, SUP)
 
-    # Collisions are impossible, since they're handled by object ID
+    # Collisions are impossible, since they are handled by object ID
     @property
     def id(self):
         return chr(id(self) % 26 + 97)  # 65 for uppercase
@@ -57,7 +57,7 @@ class Node(object):
         return [var for child in self.children for var in child.variables]
 
     def __matmul__(*args):
-        return Product(sum([node.children if type(node) is Product else [node] for node in args], []))
+        return Product(args)
 
     def propagate(self, features):
         raise NotImplementedError(self.__class__.__name__ + ' has not implemented "propagate"')
@@ -77,9 +77,15 @@ class Sigmoid(Node):
         return self.__class__.__name__ + '(' + str(self.children[0]) + ')'
 
 
-# a Node that is commutative, associative, has identity, has inverse
+# a Node operation that satisfies the group axioms of commutativity, associativity, identity, inverse
 class Group(Node):
     symbol = ''
+
+    def __init__(self, children):
+        """commutative ops should not be nested (which shows preference for order)"""
+        flat = []
+        [flat.extend(child.children) if type(child) is type(self) else flat.append(child) for child in children]
+        super().__init__(flat)
 
     def __str__(self):
         return '(' + self.symbol.join([str(child) for child in self.children]) + ')'\
@@ -172,7 +178,7 @@ class Variable(Tensor):
 
 def simplify(graph):
     # Single Tensors do not have simplifications
-    if type(graph) is Tensor:
+    if issubclass(type(graph), Tensor):
         return graph
 
     # remove singleton non-unary ops

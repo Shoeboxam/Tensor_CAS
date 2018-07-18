@@ -17,7 +17,7 @@ print('Tensor C: ' + str(C))
 print()
 
 # create the function graph
-graph = simplify(A @ B @ C)
+graph = A @ B @ C
 print('Graph: ' + str(graph))
 print('Graph Indices: ' + str(graph.indices))
 print()
